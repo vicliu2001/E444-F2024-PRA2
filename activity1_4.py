@@ -10,11 +10,6 @@ app.config['SECRET_KEY'] = 'hard to guess string'
 
 bootstrap = Bootstrap(app)
 moment = Moment(app)
-
-# def uoft_email_only(form, field):
-#     if not field.data.endswith('utoronto.ca'):
-#         raise ValidationError("Please use your UofT email.")
-
 class NameForm(FlaskForm):
     name = StringField('What is your name?', validators=[DataRequired()])
     email = StringField('What is your email?', validators=[DataRequired(), Email()])
@@ -31,47 +26,36 @@ def internal_server_error(e):
     return render_template('500.html'), 500
 
 
-# @app.route('/', methods=['GET', 'POST'])
-# def index():
-
-#     # email_error = None
-#     form = NameForm()
-#     if form.validate_on_submit():
-#         old_name = session.get('name')
-#         old_email = session.get('email')
-#         if old_name is not None and old_name != form.name.data:
-#             flash('Looks like you have changed your name!')
-        
-#         if old_email is not None and old_email != form.email.data:
-#             flash('Looks like you have changed your email!')
-#         # if form.email.errors:
-#         #     email_error = form.email.errors[0]
-#         session['name'] = form.name.data
-#         session['email'] = form.email.data
-#         return redirect(url_for('index'))
-#     return render_template('index.html', form=form, name=session.get('name'), email=session.get('email'))
-
 @app.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
-    email_error = None 
 
     if form.validate_on_submit():
+
+        # deal with name
         old_name = session.get('name')
-        old_email = session.get('email')
-        session['name'] = form.name.data
-        session['email'] = form.email.data
 
-        if not form.email.data.endswith("utoronto.ca"):
-            email_error = "Please use your UofT email."
+        if old_name is not None and old_name != form.name.data:
+            flash('Looks like you have changed your name!')
+        
+        # deal with email
+        if session.get('email') is not None:
+            old_email = session.get('email').split()[-1] # only retrieve email
         else:
-            if old_name is not None and old_name != form.name.data:
-                flash('Looks like you have changed your name!')
-            
-            if old_email is not None and old_email != form.email.data:
-                flash('Looks like you have changed your email!')
-                
-            
-            return redirect(url_for('index'))
+            old_email = session.get('email')
 
-    return render_template('index.html', form=form, name=session.get('name'), email=session.get('email'), email_error=email_error)
+        if old_email is not None and old_email != form.email.data:
+            flash('Looks like you have changed your email!')
+
+        # update email accordingly
+        if form.email.data.endswith('utoronto.ca'):
+            session['email'] = f'Your UofT email is {form.email.data}'
+        else:
+            session['email'] = 'Please use your UofT email.'
+        
+        # update name, no checks
+        session['name'] = form.name.data
+
+        return redirect(url_for('index'))
+
+    return render_template('index.html', form=form, name=session.get('name'), email=session.get('email'))
